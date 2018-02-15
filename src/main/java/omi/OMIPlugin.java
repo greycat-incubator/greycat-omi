@@ -34,8 +34,6 @@ public class OMIPlugin implements Plugin {
 
     private final String _gatewayId;
     private boolean _liveUpdate;
-    private Thread _thread;
-    private long[] currentsIds = {};
     private HashMap<String, OMIScheduler> _schedulers = new HashMap<>();
     private ODFResponseHandler _responseHandler;
 
@@ -78,7 +76,7 @@ public class OMIPlugin implements Plugin {
                                         String url = ctx.resultAsNodes().get(0).get("url").toString();
                                         ctx.defineVariable("urlRoot", url);
                                         if (_liveUpdate) {
-                                            _schedulers.put(url, new OMIScheduler(url, _responseHandler));
+                                            _schedulers.put(url, new OMIScheduler(graph, url, _responseHandler));
                                             ctx.continueTask();
                                         } else {
                                             System.err.println("[OMI] Live update is deactivated");
@@ -89,7 +87,7 @@ public class OMIPlugin implements Plugin {
                                     .forEach(
                                             thenDo(ctx -> {
                                                 Node node = ctx.resultAsNodes().get(0);
-                                                _schedulers.get(ctx.variable("urlRoot").get(0).toString()).add(node);
+                                                _schedulers.get(ctx.variable("urlRoot").get(0).toString()).add(node.id());
                                                 ctx.continueTask();
                                             })
                                     )

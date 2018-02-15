@@ -15,10 +15,12 @@
  */
 package omi;
 
-import greycat.Node;
+import greycat.Graph;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static greycat.Tasks.newTask;
 
 /**
  * A scheduler is responsible to orchestrate the OMI requests for a given server
@@ -28,7 +30,7 @@ public class OMIScheduler {
     private ExecutorService _scheduler = Executors.newScheduledThreadPool(10);
     private OMIConnector _connector;
     private String _server;
-
+    private Graph _graph;
 
     /**
      * Default constructor
@@ -36,23 +38,35 @@ public class OMIScheduler {
      * @param server          OMI server URL (eg. wss://remote_server/)
      * @param responseHandler Response handler
      */
-    public OMIScheduler(String server, ODFResponseHandler responseHandler) {
+    public OMIScheduler(Graph graph, String server, ODFResponseHandler responseHandler) {
+        _graph = graph;
         _server = server;
         _connector = new OMIConnector(server, 10240, 600000, responseHandler);
     }
 
     /**
      * Add a greycat node to the scheduler
-     * The node must have the following attributes: 'id', 'path' and 'period'
+     * The node must have the following attributes: 'id', 'path', 'period', 'action'
      *
-     * @param omiNode a greycat node
+     * @param greycatId Greycat id
      */
-    public void add(Node omiNode) {
-        System.out.println("Scheduler[" + _server + "]+= " + omiNode.get("id"));
-        int period = (int) omiNode.get("period");
-        String id = (String) omiNode.get("id");
-        String path = (String) omiNode.get("path");
-        _scheduler.execute(buildThread(id, period, path));
+    public void add(long greycatId) {
+        newTask().lookup(String.valueOf(greycatId)).thenDo(ctx -> {
+            String id = (String) ctx.resultAsNodes().get(0).get("id");
+            String path = (String) ctx.resultAsNodes().get(0).get(OMIConstants.PATH);
+            String action = (String) ctx.resultAsNodes().get(0).get(OMIConstants.ACTION);
+            switch (action) {
+                case OMIConstants.READ:
+                    System.out.println("Scheduler[" + _server + "]+= " + id);
+                    int period = (int) ctx.resultAsNodes().get(0).get("period");
+                    _scheduler.execute(buildThread(id, period, path));
+                    break;
+                case OMIConstants.WRITE:
+                    ctx.resultAsNodes().get(0).listen(changeTimes -> System.out.println("Send triggered at " + changeTimes[0] + " for " + id));
+                    break;
+            }
+            ctx.continueTask();
+        }).execute(_graph, null);
     }
 
     /**
