@@ -23,6 +23,8 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 
 import java.net.URI;
 import java.util.concurrent.Future;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The websocket transmitting the OMI request and ODF data structures
@@ -117,7 +119,27 @@ public class OMIConnector {
 
     @OnWebSocketMessage
     public void onMessage(String msg) {
-        _handler.parse(msg, _url);
+        Pattern p = Pattern.compile("returnCode=\"([0-9]{3})\"");
+        Matcher m = p.matcher(msg);
+        if (m.find()) {
+            int code = Integer.parseInt(m.group(1));
+            switch (code) {
+                case 200:
+                    _handler.parse(msg, _url);
+                    break;
+                case 404:
+                    System.err.println("Path not found [msg=" + msg + "]");
+                    break;
+                case 400:
+                    System.err.println("Bad request [msg=" + msg + "]");
+                    break;
+                case 500:
+                    System.err.println("Server internal error [msg=" + msg + "]");
+                    break;
+            }
+        } else {
+            System.err.println("Received a non-valid ODF message");
+        }
     }
 
 

@@ -19,7 +19,7 @@ import greycat.Graph;
 import omi.messages.Messages;
 
 /**
- * An abstract class to define a response handler
+ * An abstract class to define a project specific ODF handler
  */
 public abstract class ODFHandler {
 
@@ -48,6 +48,27 @@ public abstract class ODFHandler {
     }
 
     /**
+     * Build the READ message for a given path
+     *
+     * @param path Path to follow
+     * @return READ message
+     */
+    public String readMessage(String path) {
+        return Messages.envelope("<omi:read msgformat=\"odf\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
+    }
+
+    /**
+     * Build the WRITE message for a given path and value
+     *
+     * @param path  Path to follow
+     * @param value Value to write
+     * @return WRITE message
+     */
+    public String writeMessage(String path, Object value) {
+        return Messages.envelope("<omi:write msgformat=\"odf\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/"), value) + "</Objects></omi:msg></omi:write>", 0);
+    }
+
+    /**
      * Parse the incoming ODF message
      *
      * @param response  Text-based message
@@ -55,15 +76,19 @@ public abstract class ODFHandler {
      */
     public abstract void parse(String response, String sourceUrl);
 
-    public abstract String buildHierarchy(String[] ids, Object value);
-
+    /**
+     * Convert a value to an ODF tag
+     * @param value Value to convert
+     * @return A valid ODF tag
+     */
     public abstract String valueToODF(Object value);
 
-    public String readPath(String path) {
-        return Messages.envelope("<omi:read msgformat=\"odf\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
-    }
-
-    public String sendPath(String path, Object value) {
-        return Messages.envelope("<omi:write msgformat=\"odf\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/"), value) + "</Objects></omi:msg></omi:write>", 0);
-    }
+    /**
+     * Build the ODF hierarchy for an ordered list of ids and a value
+     *
+     * @param ids   Ordered list of ids
+     * @param value Value
+     * @return ODF hierarchy
+     */
+    public abstract String buildHierarchy(String[] ids, Object value);
 }

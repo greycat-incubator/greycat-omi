@@ -63,10 +63,9 @@ public class OMIScheduler {
                     break;
                 case OMIConstants.WRITE:
                     ctx.resultAsNodes().get(0).listen(changeTimes -> {
-                        System.out.println("Send triggered at " + changeTimes[0] + " for " + id);
                         newTask().lookup(String.valueOf(greycatId)).travelInTime(String.valueOf(changeTimes[0])).thenDo(ctx1 -> {
                             Object value = ctx1.resultAsNodes().get(0).get("value");
-                            String message = _connector.getHandler().sendPath(path, value);
+                            String message = _connector.getHandler().writeMessage(path, value);
                             _connector.send(message);
                             ctx1.continueTask();
                         }).execute(_graph, null);
@@ -93,7 +92,7 @@ public class OMIScheduler {
             try {
                 while (true) {
                     System.out.println("Refresh for " + id);
-                    _connector.send(_connector.getHandler().readPath(path));
+                    _connector.send(_connector.getHandler().readMessage(path));
                     Thread.sleep(period);
                 }
             } catch (InterruptedException e) {
