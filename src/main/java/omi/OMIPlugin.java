@@ -35,23 +35,23 @@ public class OMIPlugin implements Plugin {
     private final String _gatewayId;
     private boolean _liveUpdate;
     private HashMap<String, OMIScheduler> _schedulers = new HashMap<>();
-    private ODFResponseHandler _responseHandler;
+    private ODFHandler _responseHandler;
 
     /**
      * Build the OMI plugin
      *
      * @param gatewayId          Name of the gateway
-     * @param odfResponseHandler Response handler to OMI requests
+     * @param odfHandler Response handler to OMI requests
      * @param liveUpdate         Live update
      */
-    public OMIPlugin(String gatewayId, ODFResponseHandler odfResponseHandler, boolean liveUpdate) {
+    public OMIPlugin(String gatewayId, ODFHandler odfHandler, boolean liveUpdate) {
         _gatewayId = gatewayId;
-        _responseHandler = odfResponseHandler;
+        _responseHandler = odfHandler;
         _liveUpdate = liveUpdate;
     }
 
-    public OMIPlugin(String gatewayId, ODFResponseHandler odfResponseHandler) {
-        this(gatewayId, odfResponseHandler, true);
+    public OMIPlugin(String gatewayId, ODFHandler odfHandler) {
+        this(gatewayId, odfHandler, true);
     }
 
     /**

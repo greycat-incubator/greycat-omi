@@ -21,7 +21,7 @@ import omi.messages.Messages;
 /**
  * An abstract class to define a response handler
  */
-public abstract class ODFResponseHandler {
+public abstract class ODFHandler {
 
     private Graph _graph;
 
@@ -43,6 +43,10 @@ public abstract class ODFResponseHandler {
         this._graph = graph;
     }
 
+    public String buildHierarchy(String[] ids) {
+        return buildHierarchy(ids, "");
+    }
+
     /**
      * Parse the incoming ODF message
      *
@@ -51,9 +55,15 @@ public abstract class ODFResponseHandler {
      */
     public abstract void parse(String response, String sourceUrl);
 
-    public abstract String buildHierarchy(String[] ids);
+    public abstract String buildHierarchy(String[] ids, Object value);
+
+    public abstract String valueToODF(Object value);
 
     public String readPath(String path) {
         return Messages.envelope("<omi:read msgformat=\"odf\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
+    }
+
+    public String sendPath(String path, Object value) {
+        return Messages.envelope("<omi:write msgformat=\"odf\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/"), value) + "</Objects></omi:msg></omi:write>", 0);
     }
 }

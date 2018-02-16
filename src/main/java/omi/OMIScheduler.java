@@ -38,7 +38,7 @@ public class OMIScheduler {
      * @param server          OMI server URL (eg. wss://remote_server/)
      * @param responseHandler Response handler
      */
-    public OMIScheduler(Graph graph, String server, ODFResponseHandler responseHandler) {
+    public OMIScheduler(Graph graph, String server, ODFHandler responseHandler) {
         _graph = graph;
         _server = server;
         _connector = new OMIConnector(server, 10240, 600000, responseHandler);
@@ -62,7 +62,17 @@ public class OMIScheduler {
                     _scheduler.execute(buildThread(id, period, path));
                     break;
                 case OMIConstants.WRITE:
-                    ctx.resultAsNodes().get(0).listen(changeTimes -> System.out.println("Send triggered at " + changeTimes[0] + " for " + id));
+                    ctx.resultAsNodes().get(0).listen(changeTimes -> {
+                        System.out.println("Send triggered at " + changeTimes[0] + " for " + id);
+                        newTask().lookup(String.valueOf(greycatId)).travelInTime(String.valueOf(changeTimes[0])).thenDo(ctx1 -> {
+                            Object value = ctx1.resultAsNodes().get(0).get("value");
+                            String message = _connector.getHandler().sendPath(path, value);
+                            _connector.send(message);
+                            ctx1.continueTask();
+                        }).execute(_graph, null);
+                    });
+
+
                     break;
             }
             ctx.continueTask();

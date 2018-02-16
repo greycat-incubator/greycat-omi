@@ -33,7 +33,7 @@ public class OMIConnector {
     private SslContextFactory sslContextFactory = new SslContextFactory();
     private WebSocketClient client;
     private Session currentSession;
-    private ODFResponseHandler _handler;
+    private ODFHandler _handler;
     private String _url;
 
     /**
@@ -42,10 +42,10 @@ public class OMIConnector {
      * @param url                Server url (eg. wss://omiserver/)
      * @param _maxMessageSize    max message size
      * @param _maxIdleTime       max idle time
-     * @param odfResponseHandler response handler
+     * @param odfHandler response handler
      */
-    public OMIConnector(String url, int _maxMessageSize, int _maxIdleTime, ODFResponseHandler odfResponseHandler) {
-        _handler = odfResponseHandler;
+    public OMIConnector(String url, int _maxMessageSize, int _maxIdleTime, ODFHandler odfHandler) {
+        _handler = odfHandler;
         _url = url;
         sslContextFactory.setTrustAll(true);
         client = new WebSocketClient(sslContextFactory);
@@ -121,7 +121,7 @@ public class OMIConnector {
     }
 
 
-    public ODFResponseHandler getHandler() {
+    public ODFHandler getHandler() {
         return _handler;
     }
 

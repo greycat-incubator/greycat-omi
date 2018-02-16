@@ -33,17 +33,22 @@ public class OMITest {
 
         String DB_TEST = "db_test" + System.currentTimeMillis();
 
-        ODFResponseHandler handler = new ODFResponseHandler() {
+        ODFHandler handler = new ODFHandler() {
             @Override
             public void parse(String response, String sourceUrl) {
                 System.out.println("Received: " + response + " from " + sourceUrl);
             }
 
             @Override
-            public String buildHierarchy(String[] ids) {
-                if (ids.length == 0) return "<InfoItem name=\"sosa:hasSimpleResult\"/>";
+            public String buildHierarchy(String[] ids, Object value) {
+                if (ids.length == 0) return valueToODF(value);
                 else
                     return "<Object><id>" + ids[0] + "</id>" + buildHierarchy(Arrays.copyOfRange(ids, 1, ids.length)) + "</Object>";
+            }
+
+            @Override
+            public String valueToODF(Object value) {
+                return "<InfoItem name=\"sosa:hasSimpleResult\">" + value + "</InfoItem>";
             }
         };
 
