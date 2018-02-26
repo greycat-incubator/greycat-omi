@@ -22,6 +22,7 @@ import org.eclipse.jetty.websocket.api.annotations.*;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
 import java.net.URI;
+import java.util.Date;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -108,7 +109,7 @@ public class OMIConnector {
 
     @OnWebSocketClose
     public void onClose(int statusCode, String reason) {
-        System.err.println("WS Closed. statusCode = [" + statusCode + "], reason = [" + reason + "]");
+        System.err.println(new Date() + " - WS Closed. statusCode = [" + statusCode + "], reason = [" + reason + "]");
         switch (statusCode) {
             case 1006: // WebSocket Read EOF -> restart the websocket
                 try {
@@ -119,6 +120,9 @@ public class OMIConnector {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+                break;
+            case 1001:
+                System.out.println("Websocket shutdown");
                 break;
             default:
                 System.err.println("Don't know what to do");
