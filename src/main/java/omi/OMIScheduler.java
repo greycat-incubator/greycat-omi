@@ -27,7 +27,7 @@ import static greycat.Tasks.newTask;
  */
 public class OMIScheduler {
 
-    private ExecutorService _scheduler = Executors.newScheduledThreadPool(10);
+    private ExecutorService _scheduler = Executors.newCachedThreadPool();
     private OMIConnector _connector;
     private String _server;
     private Graph _graph;
@@ -41,7 +41,7 @@ public class OMIScheduler {
     public OMIScheduler(Graph graph, String server, ODFHandler responseHandler) {
         _graph = graph;
         _server = server;
-        _connector = new OMIConnector(server, 10240, 600000, responseHandler);
+        _connector = new OMIConnector(server, 10240, 60 * 60 * 1000L, responseHandler);
     }
 
     /**
@@ -70,8 +70,6 @@ public class OMIScheduler {
                             ctx1.continueTask();
                         }).execute(_graph, null);
                     });
-
-
                     break;
             }
             ctx.continueTask();

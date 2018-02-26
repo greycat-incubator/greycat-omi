@@ -46,16 +46,17 @@ public class OMIConnector {
      * @param _maxIdleTime       max idle time
      * @param odfHandler response handler
      */
-    public OMIConnector(String url, int _maxMessageSize, int _maxIdleTime, ODFHandler odfHandler) {
+    public OMIConnector(String url, int _maxMessageSize, long _maxIdleTime, ODFHandler odfHandler) {
         _handler = odfHandler;
         _url = url;
         sslContextFactory.setTrustAll(true);
         client = new WebSocketClient(sslContextFactory);
 
         try {
-            client.start();
+            client.getPolicy().setIdleTimeout(_maxIdleTime);
             client.setMaxTextMessageBufferSize(_maxMessageSize);
-            client.setMaxIdleTimeout(_maxIdleTime);
+            client.start();
+
             Future<Session> fut = client.connect(this, URI.create(url));
             currentSession = fut.get();
             System.out.println("session = " + currentSession);
@@ -107,14 +108,28 @@ public class OMIConnector {
 
     @OnWebSocketClose
     public void onClose(int statusCode, String reason) {
-        System.out.println("WS Closed. statusCode = [" + statusCode + "], reason = [" + reason + "]");
+        System.err.println("WS Closed. statusCode = [" + statusCode + "], reason = [" + reason + "]");
+        switch (statusCode) {
+            case 1006: // WebSocket Read EOF -> restart the websocket
+                try {
+                    System.out.println("Reconnecting the websocket...");
+                    client.start();
+                    Future<Session> fut = client.connect(this, URI.create(this._url));
+                    currentSession = fut.get();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                break;
+            default:
+                System.err.println("Don't know what to do");
+        }
+
 
     }
 
     @OnWebSocketError
     public void onError(Throwable cause) {
-        System.out.println("Websocket received an error");
-        cause.printStackTrace();
+        System.err.println("Websocket received an error: " + cause.getMessage());
     }
 
     @OnWebSocketMessage
