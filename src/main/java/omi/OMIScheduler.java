@@ -59,8 +59,8 @@ public class OMIScheduler {
             String action = (String) ctx.resultAsNodes().get(0).get(OMIConstants.ACTION);
             switch (action) {
                 case OMIConstants.READ:
-                    System.out.println("Scheduler[" + _server + "]+= " + id);
-                    int period = (int) ctx.resultAsNodes().get(0).get("period");
+                    long period = (long) ctx.resultAsNodes().get(0).get("period");
+                    System.out.println("Scheduler[" + _server + "]+= " + id + "(Period: " + period + "ms)");
                     _scheduler.execute(buildThread(id, period, path, greycatId));
                     break;
                 case OMIConstants.WRITE:
@@ -87,7 +87,7 @@ public class OMIScheduler {
         return _connector;
     }
 
-    private Runnable buildThread(String id, int period, String path, long greycatId) {
+    private Runnable buildThread(String id, long period, String path, long greycatId) {
         return () -> {
             try {
                 while (true) {
