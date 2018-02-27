@@ -47,6 +47,11 @@ public class OMITest {
             }
 
             @Override
+            public String getDateFormat() {
+                return null;//TODO
+            }
+
+            @Override
             public String valueToODF(Object value) {
                 return "<InfoItem name=\"sosa:hasSimpleResult\">" + value + "</InfoItem>";
             }
