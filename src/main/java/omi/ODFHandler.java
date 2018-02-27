@@ -60,8 +60,17 @@ public abstract class ODFHandler {
         return Messages.envelope("<omi:read msgformat=\"odf\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
     }
 
+    /**
+     * Build the READ message for a given path in a timeframe
+     *
+     * @param path  Path to follow
+     * @param begin Begin date as formatted string
+     * @param end   End date as formatted string
+     * @return READ message
+     */
     public String readMessage(String path, String begin, String end) {
-        return Messages.envelope("<omi:read msgformat=\"odf\"  end=\"" + end + " begin=\"" + begin + "\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
+        System.out.println("Request for " + path + " between " + begin + " and " + end);
+        return Messages.envelope("<omi:read msgformat=\"odf\"  end=\"" + end + "\" begin=\"" + begin + "\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
     }
 
     /**

@@ -16,7 +16,9 @@
 package omi;
 
 import greycat.Graph;
+import greycat.Type;
 
+import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -59,7 +61,7 @@ public class OMIScheduler {
                 case OMIConstants.READ:
                     System.out.println("Scheduler[" + _server + "]+= " + id);
                     int period = (int) ctx.resultAsNodes().get(0).get("period");
-                    _scheduler.execute(buildThread(id, period, path));
+                    _scheduler.execute(buildThread(id, period, path, greycatId));
                     break;
                 case OMIConstants.WRITE:
                     ctx.resultAsNodes().get(0).listen(changeTimes -> {
@@ -85,12 +87,23 @@ public class OMIScheduler {
         return _connector;
     }
 
-    private Runnable buildThread(String id, int period, String path) {
+    private Runnable buildThread(String id, int period, String path, long greycatId) {
         return () -> {
             try {
                 while (true) {
                     System.out.println("Refresh for " + id);
-                    _connector.send(_connector.getHandler().readMessage(path));
+                    newTask().lookup(String.valueOf(greycatId)).thenDo(ctx -> {
+                        long lastUpdate = (long) ctx.resultAsNodes().get(0).get(OMIConstants.LAST_UPDATE);
+                        ctx.setVariable("now", System.currentTimeMillis());
+                        String begin = _connector.getHandler().parseDate(new Date(lastUpdate), _connector.getHandler().getDateFormat());
+                        String end = _connector.getHandler().parseDate(new Date((Long) ctx.variable("now").get(0)), _connector.getHandler().getDateFormat());
+                        String request = _connector.getHandler().readMessage(path, begin, end);
+                        _connector.send(request);
+                        ctx.continueTask();
+                    }).setAttribute(OMIConstants.LAST_UPDATE, Type.LONG, "{{now}}")
+                            .execute(_graph, cb -> {
+                                System.out.println("OMI refresh completed");
+                            });
                     Thread.sleep(period);
                 }
             } catch (InterruptedException e) {
