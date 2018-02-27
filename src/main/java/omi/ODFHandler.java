@@ -18,8 +18,11 @@ package omi;
 import greycat.Graph;
 import omi.messages.Messages;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
- * An abstract class to define a project specific ODF handler
+ * An abstract class to define an ODF handler
  */
 public abstract class ODFHandler {
 
@@ -57,6 +60,22 @@ public abstract class ODFHandler {
         return Messages.envelope("<omi:read msgformat=\"odf\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
     }
 
+    public String readMessage(String path, String begin, String end) {
+        return Messages.envelope("<omi:read msgformat=\"odf\"  end=\"" + end + " begin=\"" + begin + "\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
+    }
+
+    /**
+     * Format a date upon a custom format
+     *
+     * @param date   Date to format
+     * @param format Custom format
+     * @return Date formatted
+     */
+    public String parseDate(Date date, String format) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat(format);
+        return dateFormat.format(date);
+    }
+
     /**
      * Build the WRITE message for a given path and value
      *
@@ -91,4 +110,12 @@ public abstract class ODFHandler {
      * @return ODF hierarchy
      */
     public abstract String buildHierarchy(String[] ids, Object value);
+
+    /**
+     * Define the date format handled by the ODF/OMI server
+     *
+     * @return A date format (must be compliant to Java Dateformat)
+     */
+    public abstract String getDateFormat();
+
 }
