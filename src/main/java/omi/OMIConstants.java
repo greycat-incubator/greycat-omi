@@ -20,5 +20,4 @@ public class OMIConstants {
     public static final String READ = "read";
     public static final String WRITE = "write";
     public static final String PATH = "path";
-    public static final String LAST_UPDATE = "last_update";
 }

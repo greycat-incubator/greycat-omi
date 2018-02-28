@@ -16,7 +16,6 @@
 package omi;
 
 import greycat.Graph;
-import greycat.Type;
 
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
@@ -91,19 +90,31 @@ public class OMIScheduler {
         return () -> {
             try {
                 while (true) {
-                    System.out.println("Refresh for " + id);
-                    newTask().lookup(String.valueOf(greycatId)).thenDo(ctx -> {
-                        long lastUpdate = (long) ctx.resultAsNodes().get(0).get(OMIConstants.LAST_UPDATE);
-                        ctx.setVariable("now", System.currentTimeMillis());
-                        String begin = _connector.getHandler().parseDate(new Date(lastUpdate), _connector.getHandler().getDateFormat());
-                        String end = _connector.getHandler().parseDate(new Date((Long) ctx.variable("now").get(0)), _connector.getHandler().getDateFormat());
-                        String request = _connector.getHandler().readMessage(path, begin, end);
-                        _connector.send(request);
-                        ctx.continueTask();
-                    }).setAttribute(OMIConstants.LAST_UPDATE, Type.LONG, "{{now}}")
-                            .execute(_graph, cb -> {
-                                System.out.println("OMI refresh completed");
-                            });
+                    newTask()
+                            .lookup(String.valueOf(greycatId))
+                            .setAsVar("node")
+                            .traverse("raw")
+                            .timepoints("0", String.valueOf(System.currentTimeMillis()))
+                            .thenDo(ctx -> {
+                                        if (ctx.result().size() > 0) {
+                                            ctx.setVariable("last_value_ts", ctx.result().get(ctx.result().size() - 1));
+                                        } else {
+                                            ctx.setVariable("last_value_ts", 0L);
+                                        }
+                                        ctx.continueTask();
+                                    }
+                            )
+                            .readVar("node").thenDo(ctx -> {
+                                long lastUpdate = ((long) ctx.variable("last_value_ts").get(0)) * 1000;
+                                ctx.setVariable("now", System.currentTimeMillis());
+                                String begin = _connector.getHandler().parseDate(new Date(lastUpdate), _connector.getHandler().getDateFormat());
+                                String end = _connector.getHandler().parseDate(new Date((Long) ctx.variable("now").get(0)), _connector.getHandler().getDateFormat());
+                                String request = _connector.getHandler().readMessage(path, begin, end);
+                                _connector.send(request);
+                                ctx.continueTask();
+                            }
+                    )
+                            .execute(_graph, null);
                     Thread.sleep(period);
                 }
             } catch (InterruptedException e) {

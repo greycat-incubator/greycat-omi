@@ -87,10 +87,6 @@ public class OMIPlugin implements Plugin {
                                     .forEach(
                                             thenDo(ctx -> {
                                                 Node node = ctx.resultAsNodes().get(0);
-                                                if (node.get(OMIConstants.LAST_UPDATE) == null) {
-                                                    System.out.println("Setting last update to 0 for " + node.get("id"));
-                                                    node.set(OMIConstants.LAST_UPDATE, Type.LONG, 0);
-                                                }
                                                 _schedulers.get(ctx.variable("urlRoot").get(0).toString()).add(node.id());
                                                 ctx.continueTask();
                                             })
