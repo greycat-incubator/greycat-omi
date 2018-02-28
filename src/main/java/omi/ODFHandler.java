@@ -20,6 +20,7 @@ import omi.messages.Messages;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.TimeZone;
 
 /**
  * An abstract class to define an ODF handler
@@ -82,6 +83,7 @@ public abstract class ODFHandler {
      */
     public String parseDate(Date date, String format) {
         SimpleDateFormat dateFormat = new SimpleDateFormat(format);
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         return dateFormat.format(date);
     }
 
