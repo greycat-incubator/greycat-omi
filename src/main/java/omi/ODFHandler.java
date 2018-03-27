@@ -48,7 +48,7 @@ public abstract class ODFHandler {
     }
 
     public String buildHierarchy(String[] ids) {
-        return buildHierarchy(ids, "");
+        return buildHierarchy(ids, null);
     }
 
     /**

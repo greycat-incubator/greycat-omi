@@ -105,7 +105,7 @@ public class OMIScheduler {
                                     }
                             )
                             .readVar("node").thenDo(ctx -> {
-                                long lastUpdate = ((long) ctx.variable("last_value_ts").get(0)) * 1000;
+                        long lastUpdate = (long) ctx.variable("last_value_ts").get(0);
                                 ctx.setVariable("now", System.currentTimeMillis());
                                 String begin = _connector.getHandler().parseDate(new Date(lastUpdate), _connector.getHandler().getDateFormat());
                                 String end = _connector.getHandler().parseDate(new Date((Long) ctx.variable("now").get(0)), _connector.getHandler().getDateFormat());
