@@ -71,7 +71,7 @@ public class OMIPlugin implements Plugin {
                     .traverse("root")
                     .forEach(
                             newTask()
-                                    .println("OMI Root node identified {{url}}")
+                                    .log("OMI Root node identified {{url}}")
                                     .thenDo(ctx -> {
                                         String url = ctx.resultAsNodes().get(0).get("url").toString();
                                         ctx.defineVariable("urlRoot", url);
