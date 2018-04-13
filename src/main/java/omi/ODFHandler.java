@@ -70,7 +70,6 @@ public abstract class ODFHandler {
      * @return READ message
      */
     public String readMessage(String path, String begin, String end) {
-        System.out.println("Request for " + path + " between " + begin + " and " + end);
         return Messages.envelope("<omi:read msgformat=\"odf\"  end=\"" + end + "\" begin=\"" + begin + "\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
     }
 
