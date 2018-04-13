@@ -73,6 +73,17 @@ public abstract class ODFHandler {
         return Messages.envelope("<omi:read msgformat=\"odf\"  end=\"" + end + "\" begin=\"" + begin + "\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
     }
 
+    public String readAmountMessage(String path, int amount, String take) {
+        switch (take) {
+            case OMIConstants.NEWEST:
+                return Messages.envelope("<omi:read msgformat=\"odf\" newest=\"" + amount + "\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
+            case OMIConstants.OLDEST:
+                return Messages.envelope("<omi:read msgformat=\"odf\" oldest=\"" + amount + "\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
+            default:
+                throw new RuntimeException("Only " + OMIConstants.NEWEST + " and " + OMIConstants.OLDEST + " are supported by the O-MI/O-DF specification");
+        }
+    }
+
     /**
      * Format a date upon a custom format
      *

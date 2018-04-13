@@ -15,6 +15,7 @@
  */
 package omi;
 
+import greycat.Constants;
 import greycat.Graph;
 
 import java.util.Date;
@@ -22,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static greycat.Tasks.newTask;
+import static omi.OMIConstants.TS_LAST_VALUE_RECEIVED;
 
 /**
  * A scheduler is responsible to orchestrate the OMI requests for a given server
@@ -91,30 +93,50 @@ public class OMIScheduler {
             try {
                 while (true) {
                     newTask()
+                            .travelInTime(Constants.BEGINNING_OF_TIME_STR)
                             .lookup(String.valueOf(greycatId))
                             .setAsVar("node")
-                            .traverse("raw")
-                            .timepoints("0", String.valueOf(System.currentTimeMillis()))
-                            .thenDo(ctx -> {
-                                        if (ctx.result().size() > 0) {
-                                            ctx.setVariable("last_value_ts", ctx.result().get(ctx.result().size() - 1));
-                                        } else {
-                                            ctx.setVariable("last_value_ts", 0L);
-                                        }
+                            .attribute(OMIConstants.MODE)
+                            .setAsVar("mode")
+                            .ifThenElse(cond -> cond.variable("mode").get(0).equals(OMIConstants.NEWEST_UNTIL_NOW),
+                                    newTask().readVar("node").traverse("raw")
+                                            .timepoints("0", String.valueOf(System.currentTimeMillis()))
+                                            .thenDo(ctx -> {
+                                                        if (ctx.result().size() > 0) {
+                                                            ctx.setVariable(TS_LAST_VALUE_RECEIVED, ctx.result().get(ctx.result().size() - 1));
+                                                        } else {
+                                                            ctx.setVariable(TS_LAST_VALUE_RECEIVED, 0L);
+                                                        }
+                                                        ctx.continueTask();
+                                                    }
+                                            )
+                                            .readVar("node").thenDo(ctx -> {
+                                        long lastUpdate = (long) ctx.variable(TS_LAST_VALUE_RECEIVED).get(0);
+                                        ctx.setVariable("now", System.currentTimeMillis());
+                                        String begin = _connector.getHandler().parseDate(new Date(lastUpdate), _connector.getHandler().getDateFormat());
+                                        String end = _connector.getHandler().parseDate(new Date((Long) ctx.variable("now").get(0)), _connector.getHandler().getDateFormat());
+                                        String request = _connector.getHandler().readMessage(path, begin, end);
+                                        _connector.send(request);
                                         ctx.continueTask();
-                                    }
-                            )
-                            .readVar("node").thenDo(ctx -> {
-                        long lastUpdate = (long) ctx.variable("last_value_ts").get(0);
-                                ctx.setVariable("now", System.currentTimeMillis());
-                                String begin = _connector.getHandler().parseDate(new Date(lastUpdate), _connector.getHandler().getDateFormat());
-                                String end = _connector.getHandler().parseDate(new Date((Long) ctx.variable("now").get(0)), _connector.getHandler().getDateFormat());
-                                String request = _connector.getHandler().readMessage(path, begin, end);
-                                _connector.send(request);
-                                ctx.continueTask();
-                            }
-                    )
-                            .execute(_graph, null);
+                                    }),
+                                    newTask().ifThenElse(cond -> cond.variable("mode").get(0).equals(OMIConstants.NEWEST),
+                                            newTask().thenDo(ctx -> {
+                                                String request = _connector.getHandler().readAmountMessage(path, 50, OMIConstants.NEWEST);
+                                                _connector.send(request);
+                                                ctx.continueTask();
+                                            }),
+                                            newTask().ifThenElse(cond -> cond.variable("mode").get(0).equals(OMIConstants.OLDEST),
+                                                    newTask().thenDo(ctx -> {
+                                                        String request = _connector.getHandler().readAmountMessage(path, 50, OMIConstants.OLDEST);
+                                                        _connector.send(request);
+                                                        ctx.continueTask();
+                                                    }),
+                                                    newTask().thenDo(ctx -> {
+                                                        throw new RuntimeException("Unknown read mode: " + ctx.variable("mode").get(0));
+                                                    })
+                                            )
+                                    )
+                            ).execute(_graph, null);
                     Thread.sleep(period);
                 }
             } catch (InterruptedException e) {
