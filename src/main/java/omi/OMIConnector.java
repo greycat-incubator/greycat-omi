@@ -17,6 +17,7 @@ package omi;
 
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.WebSocketException;
 import org.eclipse.jetty.websocket.api.WriteCallback;
 import org.eclipse.jetty.websocket.api.annotations.*;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
@@ -73,22 +74,32 @@ public class OMIConnector {
      * @param message ODF message
      */
     public void send(String message) {
-        currentSession.getRemote().sendString(message, new WriteCallback() {
-            @Override
-            public void writeFailed(Throwable throwable) {
-                if (throwable.getMessage().equals("Blocking message pending 10000 for BLOCKING")) {
-                    // Retry the sending
-                    send(message);
-                } else {
-                    throwable.printStackTrace();
+        try {
+            currentSession.getRemote().sendString(message, new WriteCallback() {
+                @Override
+                public void writeFailed(Throwable throwable) {
+                    if (throwable.getMessage().equals("Blocking message pending 10000 for BLOCKING")) {
+                        // Retry the sending
+                        send(message);
+                    } else {
+                        throwable.printStackTrace();
+                    }
                 }
+
+                @Override
+                public void writeSuccess() {
+                    //Nothing
+                }
+            });
+        } catch (WebSocketException e) {
+            if (e.getMessage().startsWith("RemoteEndpoint unavailable")) {
+                reconnect();
+            } else {
+                System.err.println("Websocket exception");
+                e.printStackTrace();
             }
 
-            @Override
-            public void writeSuccess() {
-                //Nothing
-            }
-        });
+        }
     }
 
     /**
@@ -112,14 +123,7 @@ public class OMIConnector {
         System.err.println(new Date() + " - WS Closed. statusCode = [" + statusCode + "], reason = [" + reason + "]");
         switch (statusCode) {
             case 1006: // WebSocket Read EOF -> restart the websocket
-                try {
-                    System.out.println("Reconnecting the websocket...");
-                    client.start();
-                    Future<Session> fut = client.connect(this, URI.create(this._url));
-                    currentSession = fut.get();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                reconnect();
                 break;
             case 1001:
                 System.out.println("Websocket shutdown");
@@ -164,6 +168,18 @@ public class OMIConnector {
 
     public ODFHandler getHandler() {
         return _handler;
+    }
+
+    public void reconnect() {
+        System.out.println("Reconnecting the websocket...");
+        try {
+            client.start();
+            Future<Session> fut = client.connect(this, URI.create(this._url));
+            currentSession = fut.get();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
 }
