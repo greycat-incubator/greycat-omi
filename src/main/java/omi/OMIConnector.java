@@ -17,6 +17,7 @@ package omi;
 
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.WebSocketException;
 import org.eclipse.jetty.websocket.api.WriteCallback;
 import org.eclipse.jetty.websocket.api.annotations.*;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
@@ -39,6 +40,9 @@ public class OMIConnector {
     private ODFHandler _handler;
     private String _url;
 
+    int tries = 0;
+    private int MAX_TRIES = 5;
+
     /**
      * Build the websocket
      *
@@ -58,8 +62,8 @@ public class OMIConnector {
             client.setMaxTextMessageBufferSize(_maxMessageSize);
             client.start();
 
-            Future<Session> fut = client.connect(this, URI.create(url));
-            currentSession = fut.get();
+            reconnect();
+
             System.out.println("session = " + currentSession);
 
         } catch (Exception e) {
@@ -73,22 +77,28 @@ public class OMIConnector {
      * @param message ODF message
      */
     public void send(String message) {
-        currentSession.getRemote().sendString(message, new WriteCallback() {
-            @Override
-            public void writeFailed(Throwable throwable) {
-                if (throwable.getMessage().equals("Blocking message pending 10000 for BLOCKING")) {
-                    // Retry the sending
-                    send(message);
-                } else {
-                    throwable.printStackTrace();
+        try {
+            currentSession.getRemote().sendString(message, new WriteCallback() {
+                @Override
+                public void writeFailed(Throwable throwable) {
+                    if (throwable.getMessage().equals("Blocking message pending 10000 for BLOCKING")) {
+                        // Retry the sending
+                        send(message);
+                    } else {
+                        throwable.printStackTrace();
+                    }
                 }
-            }
 
-            @Override
-            public void writeSuccess() {
-                //Nothing
+                @Override
+                public void writeSuccess() {
+                    //Nothing
+                }
+            });
+        } catch (WebSocketException e) {
+            if (!e.getMessage().contains("current state [CLOSED]")) {
+                e.printStackTrace(); // Drop closed exception as the reconnection is handled by onClose, code=1006
             }
-        });
+        }
     }
 
     /**
@@ -112,14 +122,8 @@ public class OMIConnector {
         System.err.println(new Date() + " - WS Closed. statusCode = [" + statusCode + "], reason = [" + reason + "]");
         switch (statusCode) {
             case 1006: // WebSocket Read EOF -> restart the websocket
-                try {
-                    System.out.println("Reconnecting the websocket...");
-                    client.start();
-                    Future<Session> fut = client.connect(this, URI.create(this._url));
-                    currentSession = fut.get();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                System.out.println("Reconnecting the websocket...");
+                reconnect();
                 break;
             case 1001:
                 System.out.println("Websocket shutdown");
@@ -157,10 +161,35 @@ public class OMIConnector {
                     break;
             }
         } else {
-            System.err.println("Received a non-valid ODF message");
+            System.err.println("Received a non-valid ODF message [msg=" + msg + "]");
         }
     }
 
+    private void reconnect() {
+
+        try {
+            client.start();
+            Future<Session> fut = client.connect(this, URI.create(this._url));
+            currentSession = fut.get();
+            tries = 0;
+        } catch (Exception e) {
+
+            System.err.println("Connection error");
+            e.printStackTrace();
+            if (++tries < MAX_TRIES) {
+                System.out.println("Reconnecting in " + tries * 10 + " seconds...");
+                try {
+                    Thread.sleep(tries * 10 * 1000);
+                } catch (InterruptedException e1) {
+                    e1.printStackTrace();
+                }
+                reconnect();
+            } else {
+                System.err.println("Cannot connect to O-MI node");
+            }
+        }
+
+    }
 
     public ODFHandler getHandler() {
         return _handler;
