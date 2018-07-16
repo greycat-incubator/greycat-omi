@@ -39,9 +39,10 @@ public class OMIConnector {
     private Session currentSession;
     private ODFHandler _handler;
     private String _url;
+    private Boolean isConnected;
 
     int tries = 0;
-    private int MAX_TRIES = 5;
+    private int MAX_TRIES = 10;
 
     /**
      * Build the websocket
@@ -77,26 +78,28 @@ public class OMIConnector {
      * @param message ODF message
      */
     public void send(String message) {
-        try {
-            currentSession.getRemote().sendString(message, new WriteCallback() {
-                @Override
-                public void writeFailed(Throwable throwable) {
-                    if (throwable.getMessage().equals("Blocking message pending 10000 for BLOCKING")) {
-                        // Retry the sending
-                        send(message);
-                    } else {
-                        throwable.printStackTrace();
+        if (isConnected) {
+            try {
+                currentSession.getRemote().sendString(message, new WriteCallback() {
+                    @Override
+                    public void writeFailed(Throwable throwable) {
+                        if (throwable.getMessage().equals("Blocking message pending 10000 for BLOCKING")) {
+                            // Retry the sending
+                            send(message);
+                        } else {
+                            throwable.printStackTrace();
+                        }
                     }
-                }
 
-                @Override
-                public void writeSuccess() {
-                    //Nothing
+                    @Override
+                    public void writeSuccess() {
+                        //Nothing
+                    }
+                });
+            } catch (WebSocketException e) {
+                if (!e.getMessage().contains("current state [CLOSED]")) {
+                    e.printStackTrace(); // Drop closed exception as the reconnection is handled by onClose, code=1006
                 }
-            });
-        } catch (WebSocketException e) {
-            if (!e.getMessage().contains("current state [CLOSED]")) {
-                e.printStackTrace(); // Drop closed exception as the reconnection is handled by onClose, code=1006
             }
         }
     }
@@ -106,6 +109,7 @@ public class OMIConnector {
      */
     public void close() {
         try {
+            isConnected = false;
             client.stop();
         } catch (Exception e) {
             e.printStackTrace();
@@ -115,10 +119,12 @@ public class OMIConnector {
     @OnWebSocketConnect
     public void onConnect(Session sess) {
         System.out.println("Websocket connected to " + sess.getRemote().getInetSocketAddress().toString());
+        isConnected = true;
     }
 
     @OnWebSocketClose
     public void onClose(int statusCode, String reason) {
+        isConnected = false;
         System.err.println(new Date() + " - WS Closed. statusCode = [" + statusCode + "], reason = [" + reason + "]");
         switch (statusCode) {
             case 1006: // WebSocket Read EOF -> restart the websocket
@@ -137,6 +143,7 @@ public class OMIConnector {
 
     @OnWebSocketError
     public void onError(Throwable cause) {
+        isConnected = false;
         System.err.println("Websocket received an error: " + cause.getMessage());
     }
 
@@ -172,10 +179,10 @@ public class OMIConnector {
             Future<Session> fut = client.connect(this, URI.create(this._url));
             currentSession = fut.get();
             tries = 0;
+            isConnected = true;
         } catch (Exception e) {
-
-            System.err.println("Connection error");
-            e.printStackTrace();
+            isConnected = false;
+            System.err.println("Connection error: " + e.getMessage());
             if (++tries < MAX_TRIES) {
                 System.out.println("Reconnecting in " + tries * 10 + " seconds...");
                 try {
