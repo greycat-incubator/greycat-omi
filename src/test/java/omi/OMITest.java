@@ -15,17 +15,9 @@
  */
 package omi;
 
-import greycat.*;
-import greycat.leveldb.LevelDBStorage;
-
-import java.io.File;
-import java.util.Arrays;
-
-import static greycat.Tasks.newTask;
-
 public class OMITest {
 
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
 
         String OMI_ROOT_URL = "wss://localhost"; //Change for a valid OMI node (eg. wss://otaniemi3d.cs.hut.fi/omi/node/)
         String VALID_PATH_TO_RESOURCE = "K1/101/co2";
@@ -98,5 +90,5 @@ public class OMITest {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> System.out.println(new File("./" + DB_TEST).delete())));
 
-    }
+    }*/
 }

@@ -49,7 +49,7 @@ public class OMIScheduler {
 
     /**
      * Add a greycat node to the scheduler
-     * The node must have the following attributes: 'id', 'path', 'period', 'action'
+     * The node must have the following attributes: 'id', 'path', 'period', 'action', 'infoitem'
      *
      * @param greycatId Greycat id
      */
@@ -58,18 +58,21 @@ public class OMIScheduler {
             String id = (String) ctx.resultAsNodes().get(0).get("id");
             String path = (String) ctx.resultAsNodes().get(0).get(OMIConstants.PATH);
             String action = (String) ctx.resultAsNodes().get(0).get(OMIConstants.ACTION);
+            String infoItem = (String) ctx.resultAsNodes().get(0).get(OMIConstants.INFOITEM);
             switch (action) {
                 case OMIConstants.READ:
                     long period = (long) ctx.resultAsNodes().get(0).get("period");
                     System.out.println("Scheduler[" + _server + "]+= " + id + "(Period: " + period + "ms)");
-                    _scheduler.execute(buildThread(id, period, path, greycatId));
+                    _scheduler.execute(buildThread(id, period, path, greycatId, infoItem));
                     break;
                 case OMIConstants.WRITE:
+                    System.out.println("Listener[" + _server + "]+=" + id);
                     ctx.resultAsNodes().get(0).listen(changeTimes -> {
                         newTask().lookup(String.valueOf(greycatId)).travelInTime(String.valueOf(changeTimes[0])).thenDo(ctx1 -> {
                             Object value = ctx1.resultAsNodes().get(0).get("value");
-                            String message = _connector.getHandler().writeMessage(path, value);
-                            _connector.send(message);
+                            String message = _connector.getHandler().writeMessage(path, value, infoItem);
+                            System.out.println("MOCK SEND: " + message);
+                            //_connector.send(message);
                             ctx1.continueTask();
                         }).execute(_graph, null);
                     });
@@ -88,7 +91,7 @@ public class OMIScheduler {
         return _connector;
     }
 
-    private Runnable buildThread(String id, long period, String path, long greycatId) {
+    private Runnable buildThread(String id, long period, String path, long greycatId, String infoItem) {
         return () -> {
             try {
                 while (true) {
@@ -115,19 +118,19 @@ public class OMIScheduler {
                                         ctx.setVariable("now", System.currentTimeMillis());
                                         String begin = _connector.getHandler().parseDate(new Date(lastUpdate), _connector.getHandler().getDateFormat());
                                         String end = _connector.getHandler().parseDate(new Date((Long) ctx.variable("now").get(0)), _connector.getHandler().getDateFormat());
-                                        String request = _connector.getHandler().readMessage(path, begin, end);
+                                        String request = _connector.getHandler().readMessage(path, begin, end, infoItem);
                                         _connector.send(request);
                                         ctx.continueTask();
                                     }),
                                     newTask().ifThenElse(cond -> cond.variable("mode").get(0).equals(OMIConstants.NEWEST),
                                             newTask().thenDo(ctx -> {
-                                                String request = _connector.getHandler().readAmountMessage(path, 50, OMIConstants.NEWEST);
+                                                String request = _connector.getHandler().readAmountMessage(path, 50, OMIConstants.NEWEST, infoItem);
                                                 _connector.send(request);
                                                 ctx.continueTask();
                                             }),
                                             newTask().ifThenElse(cond -> cond.variable("mode").get(0).equals(OMIConstants.OLDEST),
                                                     newTask().thenDo(ctx -> {
-                                                        String request = _connector.getHandler().readAmountMessage(path, 50, OMIConstants.OLDEST);
+                                                        String request = _connector.getHandler().readAmountMessage(path, 50, OMIConstants.OLDEST, infoItem);
                                                         _connector.send(request);
                                                         ctx.continueTask();
                                                     }),

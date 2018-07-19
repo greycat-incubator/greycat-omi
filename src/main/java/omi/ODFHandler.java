@@ -47,8 +47,8 @@ public abstract class ODFHandler {
         this._graph = graph;
     }
 
-    public String buildHierarchy(String[] ids) {
-        return buildHierarchy(ids, null);
+    public String buildHierarchy(String[] ids, String infoItem) {
+        return buildHierarchy(ids, null, infoItem);
     }
 
     /**
@@ -57,8 +57,8 @@ public abstract class ODFHandler {
      * @param path Path to follow
      * @return READ message
      */
-    public String readMessage(String path) {
-        return Messages.envelope("<omi:read msgformat=\"odf\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
+    public String readMessage(String path, String infoItem) {
+        return Messages.envelope("<omi:read msgformat=\"odf\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/"), infoItem) + "</Objects></omi:msg></omi:read>", 0);
     }
 
     /**
@@ -69,16 +69,16 @@ public abstract class ODFHandler {
      * @param end   End date as formatted string
      * @return READ message
      */
-    public String readMessage(String path, String begin, String end) {
-        return Messages.envelope("<omi:read msgformat=\"odf\"  end=\"" + end + "\" begin=\"" + begin + "\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
+    public String readMessage(String path, String begin, String end, String infoItem) {
+        return Messages.envelope("<omi:read msgformat=\"odf\"  end=\"" + end + "\" begin=\"" + begin + "\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/"), infoItem) + "</Objects></omi:msg></omi:read>", 0);
     }
 
-    public String readAmountMessage(String path, int amount, String take) {
+    public String readAmountMessage(String path, int amount, String take, String infoItem) {
         switch (take) {
             case OMIConstants.NEWEST:
-                return Messages.envelope("<omi:read msgformat=\"odf\" newest=\"" + amount + "\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
+                return Messages.envelope("<omi:read msgformat=\"odf\" newest=\"" + amount + "\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/"), infoItem) + "</Objects></omi:msg></omi:read>", 0);
             case OMIConstants.OLDEST:
-                return Messages.envelope("<omi:read msgformat=\"odf\" oldest=\"" + amount + "\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/")) + "</Objects></omi:msg></omi:read>", 0);
+                return Messages.envelope("<omi:read msgformat=\"odf\" oldest=\"" + amount + "\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/"), infoItem) + "</Objects></omi:msg></omi:read>", 0);
             default:
                 throw new RuntimeException("Only " + OMIConstants.NEWEST + " and " + OMIConstants.OLDEST + " are supported by the O-MI/O-DF specification");
         }
@@ -102,10 +102,11 @@ public abstract class ODFHandler {
      *
      * @param path  Path to follow
      * @param value Value to write
+     * @param infoItem InfoItem name
      * @return WRITE message
      */
-    public String writeMessage(String path, Object value) {
-        return Messages.envelope("<omi:write msgformat=\"odf\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/"), value) + "</Objects></omi:msg></omi:write>", 0);
+    public String writeMessage(String path, Object value, String infoItem) {
+        return Messages.envelope("<omi:write msgformat=\"odf\"><omi:msg><Objects xmlns=\"odf.xsd\">" + buildHierarchy(path.split("/"), value, infoItem) + "</Objects></omi:msg></omi:write>", 0);
     }
 
     /**
@@ -119,18 +120,20 @@ public abstract class ODFHandler {
     /**
      * Convert a value to an ODF tag
      * @param value Value to convert
+     * @param infoItem infoItem name
      * @return A valid ODF tag
      */
-    public abstract String valueToODF(Object value);
+    public abstract String valueToODF(Object value, String infoItem);
 
     /**
      * Build the ODF hierarchy for an ordered list of ids and a value
      *
      * @param ids   Ordered list of ids
      * @param value Value
+     * @param infoItem infoItem name
      * @return ODF hierarchy
      */
-    public abstract String buildHierarchy(String[] ids, Object value);
+    public abstract String buildHierarchy(String[] ids, Object value, String infoItem);
 
     /**
      * Define the date format handled by the ODF/OMI server

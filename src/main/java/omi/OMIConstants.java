@@ -21,6 +21,7 @@ public class OMIConstants {
     public static final String WRITE = "write";
     public static final String PATH = "path";
     public static final String MODE = "mode";
+    public static final String INFOITEM = "infoitem";
 
     public static final String NEWEST_UNTIL_NOW = "newest_until_now";
     public static final String NEWEST = "newest";
