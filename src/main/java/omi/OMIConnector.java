@@ -158,7 +158,7 @@ public class OMIConnector {
                     _handler.parse(msg, _url);
                     break;
                 case 404:
-                    System.err.println("Path not found or no fresher values");
+                    System.err.println("Path not found or no fresher values [msg=" + msg + "]");
                     break;
                 case 400:
                     System.err.println("Bad request [msg=" + msg + "]");
