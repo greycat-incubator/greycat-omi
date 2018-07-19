@@ -71,8 +71,7 @@ public class OMIScheduler {
                         newTask().lookup(String.valueOf(greycatId)).travelInTime(String.valueOf(changeTimes[0])).thenDo(ctx1 -> {
                             Object value = ctx1.resultAsNodes().get(0).get("value");
                             String message = _connector.getHandler().writeMessage(path, value, infoItem);
-                            System.out.println("MOCK SEND: " + message);
-                            //_connector.send(message);
+                            _connector.send(message);
                             ctx1.continueTask();
                         }).execute(_graph, null);
                     });
