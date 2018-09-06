@@ -44,7 +44,7 @@ public class OMIScheduler {
     public OMIScheduler(Graph graph, String server, ODFHandler responseHandler) {
         _graph = graph;
         _server = server;
-        _connector = new OMIConnector(server, 10240, 60 * 60 * 1000L, responseHandler);
+        _connector = new OMIConnector(server, 100000, 60 * 60 * 1000L, responseHandler);
     }
 
     /**

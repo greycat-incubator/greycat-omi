@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 /**
  * The websocket transmitting the OMI request and ODF data structures
  */
-@WebSocket
+@WebSocket(maxTextMessageSize = 1048576, maxBinaryMessageSize = 1048576)
 public class OMIConnector {
 
     private SslContextFactory sslContextFactory = new SslContextFactory();
@@ -190,10 +190,15 @@ public class OMIConnector {
                 } catch (InterruptedException e1) {
                     e1.printStackTrace();
                 }
-                reconnect();
             } else {
-                System.err.println("Cannot connect to O-MI node");
+                System.err.println("Cannot connect to O-MI node... Retry in 60min");
+                try {
+                    Thread.sleep(3600 * 1000);
+                } catch (InterruptedException e1) {
+                    e1.printStackTrace();
+                }
             }
+            reconnect();
         }
 
     }
